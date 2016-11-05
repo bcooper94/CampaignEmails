@@ -1,0 +1,345 @@
+[
+    {
+        "x": 9,
+        "z": 4,
+        "y": 46,
+        "candidate": "Hillary Clinton",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 9,
+        "z": 7,
+        "y": 46,
+        "candidate": "Donald Trump",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 9,
+        "z": 10,
+        "y": 3,
+        "candidate": "Gary Johnson",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 9,
+        "z": 10,
+        "y": 2,
+        "candidate": "Jill Stein",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 8,
+        "z": 0,
+        "y": 46,
+        "candidate": "Hillary Clinton",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 8,
+        "z": 9,
+        "y": 44,
+        "candidate": "Donald Trump",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 8,
+        "z": 10,
+        "y": 5,
+        "candidate": "Gary Johnson",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 8,
+        "z": 10,
+        "y": 1,
+        "candidate": "Jill Stein",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 7,
+        "z": 0,
+        "y": 50,
+        "candidate": "Hillary Clinton",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 7,
+        "z": 16,
+        "y": 42,
+        "candidate": "Donald Trump",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 6,
+        "z": 0,
+        "y": 47,
+        "candidate": "Hillary Clinton",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 6,
+        "z": 5,
+        "y": 43,
+        "candidate": "Donald Trump",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 5,
+        "z": 0,
+        "y": 51,
+        "candidate": "Hillary Clinton",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 5,
+        "z": 11,
+        "y": 39,
+        "candidate": "Donald Trump",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 4,
+        "z": 1,
+        "y": 56,
+        "candidate": "Hillary Clinton",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 4,
+        "z": 27,
+        "y": 42,
+        "candidate": "Bernie Sanders",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 3,
+        "z": 0,
+        "y": 50,
+        "candidate": "Hillary Clinton",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 3,
+        "z": 61,
+        "y": 48,
+        "candidate": "Bernie Sanders",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 3,
+        "z": 6,
+        "y": 40,
+        "candidate": "Donald Trump",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 3,
+        "z": 10,
+        "y": 35,
+        "candidate": "Ted Cruz",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 3,
+        "z": 26,
+        "y": 24,
+        "candidate": "John Kasich",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 2,
+        "z": 0,
+        "y": 53,
+        "candidate": "Hillary Clinton",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 2,
+        "z": 73,
+        "y": 44,
+        "candidate": "Bernie Sanders",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 2,
+        "z": 3,
+        "y": 30,
+        "candidate": "Donald Trump",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 2,
+        "z": 29,
+        "y": 27,
+        "candidate": "Ted Cruz",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 2,
+        "z": 18,
+        "y": 22,
+        "candidate": "John Kasich",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 2,
+        "z": 3,
+        "y": 20,
+        "candidate": "Marco Rubio",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 1,
+        "z": 21,
+        "y": 53,
+        "candidate": "Hillary Clinton",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 1,
+        "z": 57,
+        "y": 42,
+        "candidate": "Bernie Sanders",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 1,
+        "z": 21,
+        "y": 26,
+        "candidate": "Donald Trump",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 1,
+        "z": 35,
+        "y": 28,
+        "candidate": "Ted Cruz",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 1,
+        "z": 5,
+        "y": 11,
+        "candidate": "John Kasich",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 1,
+        "z": 18,
+        "y": 17,
+        "candidate": "Marco Rubio",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 1,
+        "z": 1,
+        "y": 10,
+        "candidate": "Ben Carson",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 1,
+        "z": 25,
+        "y": 4,
+        "candidate": "Jeb Bush",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 14,
+        "y": 55,
+        "candidate": "Hillary Clinton",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 20,
+        "y": 36,
+        "candidate": "Bernie Sanders",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 10,
+        "y": 4,
+        "candidate": "Martin O'Malley",
+        "color": "rgba(0,0,255,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 12,
+        "y": 37,
+        "candidate": "Donald Trump",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 46,
+        "y": 21,
+        "candidate": "Ted Cruz",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 31,
+        "y": 2,
+        "candidate": "John Kasich",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 65,
+        "y": 11,
+        "candidate": "Marco Rubio",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 2,
+        "y": 7,
+        "candidate": "Ben Carson",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 32,
+        "y": 5,
+        "candidate": "Jeb Bush",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 41,
+        "y": 4,
+        "candidate": "Chris Christie",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 28,
+        "y": 3,
+        "candidate": "Carly Fiorina",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 10,
+        "y": 2,
+        "candidate": "Mike Huckabee",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 10,
+        "y": 1,
+        "candidate": "Rand Paul",
+        "color": "rgba(255,0,0,0.25)"
+    },
+    {
+        "x": 0,
+        "z": 18,
+        "y": 0,
+        "candidate": "Rick Santorum",
+        "color": "rgba(255,0,0,0.25)"
+    }
+]
