@@ -14,13 +14,18 @@
       <script src="./app.js"></script>
    </head>
    <body>
-      <p> Names: </p>
+      <p> Names: Tobias Bleish, Brandon Cooper, Joey Wilson</p>
       <p> Cal Poly, CSC 582, Natural Language Processing, Prof. Foaad Khosmood </p>
       <p> New Hampshire Voter Email Corpus 2016 </p>
       <ul>
-         <li>Finding One</li>
-         <li>Finding Two</li>
-         <li>Finding Three</li>
+         <li>
+         Machine Learning 1: For the first machine learning task we looked at emails from Clinton and Trump and attempted to determine if they came before or after the party conventions. So in other words did their emails change after they became the candidate for their party. The features we extracted were unigrams of the emails. We looked at nouns, verbs, and adjectives of length longer than three to attempt to get rid of filler words. Our results were around 40% prediction which wasn’t great as you would think a flip of a coin would be 50% but there were less after emails than before so just guessing wasn’t 50 50, so this results wasn’t terrible. A side processing step we did was compare a frequency distribution of the two candidates emails before and after. An interesting feature we found in the frequency distribution is that clinton asked for money a lot before but rarely afterwards.
+         </li>
+         <li>Machine Learning: </li>
+         <li>
+         Visualization: The visualization we did was to look at polling percentage vs number of emails vs time to see if there was a correlation. We got out polling data from here <a href=”http://www.politico.com/2016-election/polls/president/latest”> Polling Data </a>
+We used the Y axis for the polling percentage and the bubble size in the graph for number of emails sent. We made republicans red and democrats blue to try to make it easier to see when they overlap. If you hover over the circle you get the exact data of that point. One thing to note about the polling data is before the national convention the percentages were against only other members of the party. So for Hillary and Bernie it makes them look good because they were the only two major democrat runners, whereas the republicans percentage were in proportion with the larger number of candidates they had early on. Looking at the graph it doesn’t appear there is much change in polling vs the number of emails sent out. More data of a week to week polling could have helped either confirm or debunk this conclusion.
+         </li>
       </ul>
       <div id="container">
       </div>
