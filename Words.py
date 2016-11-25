@@ -16,11 +16,11 @@ def freq_dist(words):
             break 
    fdst = nltk.FreqDist(nw)
    fdc = fdst.most_common(100)
-   for mc in fdc:
-      print(' Word: {} Freq: {}'.format(mc[0], mc[1]))
+   #for mc in fdc:
+   #   print(' Word: {} Freq: {}'.format(mc[0], mc[1]))
    return list(map(lambda x : x[0], fdc))
 
-def parse(mboxes):
+def fdist_parse(mboxes):
    before_months = ['Jan', 'Feb', 'Apr', 'May', 'Jun']
    after_months = ['Jul', 'Aug', 'Sep', 'Oct']
 
@@ -48,13 +48,13 @@ def parse(mboxes):
                  cands[b.candidate]['after'] += bs4.BeautifulSoup(m.body[0].as_string(),'html.parser').get_text()
                  break
    
-   print('\nClinton Before:')
+   #print('\nClinton Before:')
    cands['Clinton']['before'] = freq_dist(cands['Clinton']['before'])
-   print('\nClinton After:')
+   #print('\nClinton After:')
    cands['Clinton']['after'] = freq_dist(cands['Clinton']['after'])
-   print('\nTrump Before:')
+   #print('\nTrump Before:')
    cands['Trump']['before'] = freq_dist(cands['Trump']['before'])
-   print('\nTrump After:')
+   #print('\nTrump After:')
    cands['Trump']['after'] = freq_dist(cands['Trump']['after'])
 
    print('\nWords Clinton Stopped Using:')
@@ -71,7 +71,9 @@ def parse(mboxes):
 
 def extract_features(data):
    features = {}
-   features['contains({})'.format(data)] = True
+   words = word_tokenizer.tokenize(data)
+   for w in words:
+      features['contains({})'.format(w)] = True
    return features
 
 def build_feature_list(data):
@@ -80,36 +82,40 @@ def build_feature_list(data):
       feature_list.append((extract_features(d[0]), d[1]))
    return feature_list
 
+def ml_parse(mboxes):
+   
+   data = []
+
+   for b in mboxes:
+      for m in b.messages:  
+         html = m.body[0]
+         if type(html) != str:
+            html = html.as_string()
+         for bm in ['Jan', 'Feb', 'Apr', 'May', 'Jun']:
+            if bm in m.headers['Date']:
+               data.append((bs4.BeautifulSoup(html,'html.parser').get_text(), 'before'))
+               break
+         for bm in ['Jul', 'Aug', 'Sep', 'Oct']:
+            if bm in m.headers['Date']:
+               data.append((bs4.BeautifulSoup(html,'html.parser').get_text(), 'after'))
+               break
+
+   return data
+
 def main():
    mboxes = CampaignEmails.extractMboxes('Takeout/Mail/')
-   cands = parse(mboxes)
+   #fdist_parse(mboxes)
 
    print('\nRunning the classifier:')
+   data = ml_parse(mboxes)
 
-   training_data = []
-   test_data = []
+   random.shuffle(data)
 
-   # make it random each time
-   map(lambda x: random.shuffle(x), [cands['Clinton']['before'], cands['Clinton']['after'], cands['Trump']['before'], cands['Trump']['after']])
+   sl = math.floor(len(data) * 0.75)
 
-   for w in cands['Clinton']['before'][0:math.floor(len(cands['Clinton']['before'])*(3.0/4))]:
-      training_data.append((w,'before')) 
-   for w in cands['Trump']['before'][0:math.floor(len(cands['Trump']['before'])*(3.0/4))]:
-      training_data.append((w,'before')) 
-   for w in cands['Clinton']['after'][0:math.floor(len(cands['Clinton']['after'])*(3.0/4))]:
-      training_data.append((w,'after')) 
-   for w in cands['Trump']['after'][0:math.floor(len(cands['Trump']['after'])*(3.0/4))]:
-      training_data.append((w,'after')) 
-
-   for w in cands['Clinton']['before'][math.floor(len(cands['Clinton']['before'])*(3.0/4)):math.floor(len(cands['Clinton']['before']))]:
-      test_data.append((w,'before')) 
-   for w in cands['Trump']['before'][math.floor(len(cands['Trump']['before'])*(3.0/4)):math.floor(len(cands['Trump']['before']))]:
-      test_data.append((w,'before')) 
-   for w in cands['Clinton']['after'][math.floor(len(cands['Clinton']['after'])*(3.0/4)):math.floor(len(cands['Clinton']['after']))]:
-      test_data.append((w,'after')) 
-   for w in cands['Trump']['after'][math.floor(len(cands['Trump']['after'])*(3.0/4)):math.floor(len(cands['Trump']['after']))]:
-      test_data.append((w,'after'))
-
+   training_data = data[0:sl]
+   test_data = data[sl:len(data)]
+ 
    training_features = build_feature_list(training_data)
    test_features = build_feature_list(test_data)
    
