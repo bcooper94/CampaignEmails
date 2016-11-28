@@ -1,21 +1,22 @@
 # Main driver for the chatbot
 # Author: Joey Wilson
-# Channel: #CPE582
-# Bot: space-bot
 # Starting code from: Joel Rosdahl <joel@rosdahl.net>
 
 # TODO
 # make sure the time between utterances is between 1 and 3 second
 
-
 import irc.client
 import logging
 import sys
+
+import fsm
 
 SERVER = 'irc.freenode.net'
 PORT = 6667
 CHANNEL = '#joeycpe582test'
 NICKNAME = 'space-bot'
+
+state = fsm.START # global state for fsm
 
 log = logging.getLogger(__name__)
 
@@ -43,18 +44,49 @@ def send(conn, msg):
    conn.privmsg(CHANNEL, msg)
 
 def recv(conn, frm, msg):
+   global state
    log.info('recv ... {}:{}'.format(frm, msg))   
    if msg[0: len(NICKNAME)+1] == '{}:'.format(NICKNAME):
       cmd = msg[len(NICKNAME)+1:].upper().strip()
       log.info('cmd ... {}'.format(cmd))
       if cmd == 'DIE':
-         conn.quit('dieing')
-         sys.exit('dieing')
+         conn.quit('dying')
+         sys.exit('dying')
       elif cmd == '*FORGET':
+         state = fsm.START
          log.info('forgetting ...')
-         #TODO
-      elif cmd == 'HELLO':
-         send(conn, '{}: hello'.format(frm))
+      else: # FSM
+         fsm_driver(conn, frm, cmd)
+
+def fsm_driver(conn, frm, cmd):
+   global state
+   msg = None
+   
+   if state == fsm.START:
+      state, msg = fsm.start(cmd)
+   elif state == fsm.INITIAL_OUTREACH_1:
+      state, msg = fsm.initial_outreach_1(cmd)
+   elif state == fsm.SECONDARY_OUTREACH_1:
+      state, msg = fsm.secondary_outreach_1(cmd)
+   elif state == fsm.GIVEUP_FRUSTRATED_1:
+      state, msg = fsm.giveup_frustrated_1(cmd)
+   elif state == fsm.INQUIRY_1:
+      state, msg = fsm.inquiry_1(cmd)
+   elif state == fsm.INQUIRY_REPLY_1:
+      state, msg = fsm.inquiry_reply_1(cmd)
+   elif state == fsm.OUTREACH_REPLY_2:
+      state, msg = fsm.outreach_reply_2(cmd)
+   elif state == fsm.INQUIRY_2:
+      state, msg = fsm.inquiry_2(cmd)
+   elif state == fsm.GIVEUP_FRUSTRATED_2:
+      state, msg = fsm.giveup_frustrated_2(cmd)
+   elif state == fsm.INQUIRY_REPLY_2:
+      state, msg = fsm.inquiry_reply_2(cmd)
+   if state == fsm.END:
+      state, msg = fsm.end(cmd)
+   
+   if msg:
+      send(conn, msg)
 
 def main():
    # Switch to debug for verbose logging
@@ -70,7 +102,7 @@ def main():
       c.add_global_handler('disconnect', on_disconnect)
       reactor.process_forever()
    except:
-      print('-----',sys.exc_info()[1],'-----')
+      log.info(sys.exc_info()[1])
 
 if __name__ == '__main__':
-    main()
+   main()
