@@ -8,6 +8,7 @@
 import irc.client
 import logging
 import sys
+import threading
 
 import fsm
 
@@ -16,9 +17,9 @@ PORT = 6667
 CHANNEL = '#joeycpe582test'
 NICKNAME = 'space-bot'
 
-state = fsm.START # global state for fsm
-
 log = logging.getLogger(__name__)
+
+timeout = None
 
 def on_welcome(conn, evt):
    if irc.client.is_channel(CHANNEL):
@@ -53,37 +54,60 @@ def recv(conn, frm, msg):
          conn.quit('dying')
          sys.exit('dying')
       elif cmd == '*FORGET':
-         state = fsm.START
+         fsm.state = fsm.START
          log.info('forgetting ...')
       else: # FSM
          fsm_driver(conn, frm, cmd)
 
+def no_reply(conn):
+   if fsm.state == fsm.INITIAL_OUTREACH_1: 
+      msg = fsm.initial_outreach_1('TIMEOUT') 
+      timeout = threading.Timer(10.0, no_reply, args=[conn])
+      timeout.start()
+   else:
+      msg = fsm.giveup_frustrated(None)
+   send(conn, msg)
+
 def fsm_driver(conn, frm, cmd):
-   global state
-   msg = None
-   
-   if state == fsm.START:
-      state, msg = fsm.start(cmd)
-   elif state == fsm.INITIAL_OUTREACH_1:
-      state, msg = fsm.initial_outreach_1(cmd)
-   elif state == fsm.SECONDARY_OUTREACH_1:
-      state, msg = fsm.secondary_outreach_1(cmd)
-   elif state == fsm.GIVEUP_FRUSTRATED_1:
-      state, msg = fsm.giveup_frustrated_1(cmd)
-   elif state == fsm.INQUIRY_1:
-      state, msg = fsm.inquiry_1(cmd)
-   elif state == fsm.INQUIRY_REPLY_1:
-      state, msg = fsm.inquiry_reply_1(cmd)
-   elif state == fsm.OUTREACH_REPLY_2:
-      state, msg = fsm.outreach_reply_2(cmd)
-   elif state == fsm.INQUIRY_2:
-      state, msg = fsm.inquiry_2(cmd)
-   elif state == fsm.GIVEUP_FRUSTRATED_2:
-      state, msg = fsm.giveup_frustrated_2(cmd)
-   elif state == fsm.INQUIRY_REPLY_2:
-      state, msg = fsm.inquiry_reply_2(cmd)
-   if state == fsm.END:
-      state, msg = fsm.end(cmd)
+   global timeout
+
+   msg = None  
+
+   if timeout:
+      timeout.cancel()
+
+   if fsm.state == fsm.START:
+      msg = fsm.start(cmd)
+      timeout = threading.Timer(10.0, no_reply, args=[conn])
+      timeout.start()
+   elif fsm.state == fsm.INITIAL_OUTREACH_1:
+      msg = fsm.initial_outreach_1(cmd)
+      timeout = threading.Timer(10.0, no_reply, args=[conn])
+      timeout.start()
+   elif fsm.state == fsm.SECONDARY_OUTREACH_1:
+      msg = fsm.secondary_outreach_1(cmd)
+   elif fsm.state == fsm.GIVEUP_FRUSTRATED_1:
+      msg = fsm.giveup_frustrated_1(cmd)
+   elif fsm.state == fsm.INQUIRY_1:
+      msg = fsm.inquiry_1(cmd)
+   elif fsm.state == fsm.INQUIRY_REPLY_1:
+      msg = fsm.inquiry_reply_1(cmd)
+   elif fsm.state == fsm.OUTREACH_REPLY_2:
+      msg = fsm.outreach_reply_2(cmd)
+      if msg == '':
+         return
+      send(conn, msg)
+      msg = fsm.inquiry_reply_2(cmd)
+      timeout = threading.Timer(10.0, no_reply, args=[conn])
+      timeout.start()
+   elif fsm.state == fsm.INQUIRY_2:
+      msg = fsm.inquiry_2(cmd)
+   elif fsm.state == fsm.GIVEUP_FRUSTRATED_2:
+      msg = fsm.giveup_frustrated_2(cmd)
+   elif fsm.state == fsm.INQUIRY_REPLY_2:
+      msg = fsm.inquiry_reply_2(cmd)
+   if fsm.state == fsm.END:
+      msg = fsm.end(cmd)
    
    if msg:
       send(conn, msg)

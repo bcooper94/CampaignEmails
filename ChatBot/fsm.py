@@ -16,46 +16,88 @@ END = 10
 import logging
 log = logging.getLogger(__name__)
 
-def start(cmd):
-   log.info('START {}'.format(cmd))
-   return INITIAL_OUTREACH_1, 's state' 
+state = START
 
+# DONE
+def start(cmd):
+   global state
+   log.info('START {}'.format(cmd))
+   if cmd == 'HELLO':
+      state = OUTREACH_REPLY_2
+      return 'HELLO BACK AT YOU!'
+   elif '_START_' in cmd:
+      state = INITIAL_OUTREACH_1
+      return 'HELLO'
+   return ''
+
+# DONE
 def initial_outreach_1(cmd):
+   global state
    log.info('INITIAL_OUTREACH_1 {}'.format(cmd))
-   return SECONDARY_OUTREACH_1, 'io1 state' 
+   if cmd == 'HELLO BACK AT YOU!':
+      state = INQUIRY_1
+      return 'WHAT\'S HAPPENING?'
+   elif cmd == 'TIMEOUT': 
+      state = SECONDARY_OUTREACH_1
+      return 'EXCUSE ME, HELLO?'
+   return ''
 
 def secondary_outreach_1(cmd):
+   global state
    log.info('SECONDARY_OUTREACH_1 {}'.format(cmd))
-   return GIVEUP_FRUSTRATED_1, 'so1 state'
+   if cmd == 'HELLO BACK AT YOU!':
+      state = INQUIRY_1
+      return 'WHAT\'S HAPPENING?'
+   return ''
 
-def giveup_frustrated_1(cmd):
-   log.info('GIVEUP_FRUSTRATED_1 {}'.format(cmd))
-   return INQUIRY_1, 'gf1 state'
-
+# DONE
 def inquiry_1(cmd):
+   global state
    log.info('INQUIRY_1 {}'.format(cmd))
-   return INQUIRY_REPLY_1, 'i1 state'
+   if cmd == 'AND YOURSELF?':
+      state = INQUIRY_REPLY_1
+      return 'I\'M FINE THANKS FOR ASKING'   
+   return ''
 
+# DONE      
 def inquiry_reply_1(cmd):
+   global state
    log.info('INQUIRY_REPLY_1 {}'.format(cmd))
-   return OUTREACH_REPLY_2, 'ir1 state'
+   state = END
+   return ''
 
+# DONE
 def outreach_reply_2(cmd):
+   global state
    log.info('OUTREACH_REPLY_2 {}'.format(cmd))
-   return INQUIRY_2, 'or2 state'
+   if cmd == 'WHAT\'S HAPPENING?':
+      state = INQUIRY_REPLY_2
+      return 'I\'M FINE'
+   return ''
 
+# DONE
 def inquiry_2(cmd):
+   global state
    log.info('INQUIRY_2 {}'.format(cmd))
-   return GIVEUP_FRUSTRATED_2, 'i2 state'
+   state = END
+   return ''
 
-def giveup_frustrated_2(cmd):
+# DONE
+def giveup_frustrated(cmd):
+   global state
    log.info('GIVEUP_FRUSTRATED_2 {}'.format(cmd))
-   return INQUIRY_REPLY_2, 'gf2 state'
+   state = END
+   return 'WHATEVER'
 
+# DONE
 def inquiry_reply_2(cmd):
+   global state
    log.info('INQUIRY_REPLY_2 {}'.format(cmd))
-   return END, 'ir2 state' 
+   state = INQUIRY_2
+   return 'AND YOURSELF?'
 
+# DONE
 def end(cmd):
+   global state
    log.info('END {}'.format(cmd))
-   return END, 'e state' 
+   return 'END'
