@@ -55,6 +55,7 @@ class Chatbot:
 
     def respond(self, conn, cmd=None, frm=None):
         if self.timeout:
+            log.info('Canceling timeout')
             self.timeout.cancel()
 
         if self.state == START:
@@ -100,12 +101,18 @@ class Chatbot:
         log.info('send ... {}'.format(msg))
         conn.privmsg(CHANNEL, msg)
 
+        if self.timeout is not None:
+            log.info('Canceling timeout from _send')
+            self.timeout.cancel()
+
         # Set timers for frustrated replies
         if self.state == INITIAL_OUTREACH_1:
+            log.info('Setting timer for secondary outreach 1')
             self.timeout = threading.Timer(FRUSTRATED_DELAY, self.secondary_outreach_1, args=[conn])
             self.timeout.start()
         elif self.state == SECONDARY_OUTREACH_1 or self.state == OUTREACH_REPLY_2\
                 or self.state == INQUIRY_1 or self.state == INQUIRY_2:
+            log.info('Setting timer for giving up')
             self.timeout = threading.Timer(FRUSTRATED_DELAY, self.giveup_frustrated_1, args=[conn])
             self.timeout.start()
 
@@ -171,15 +178,15 @@ class Chatbot:
         # self.send(conn, 'I\'m glad we had the chance to meet, however I\'m a busy man, so I regret I must go. Goodbye, fellow Americans.')
         self.send(conn, 'Goodbye.')
 
-    def no_reply(self, conn):
-        log.info('Sending no reply message')
-        if self.state == INITIAL_OUTREACH_1:
-            msg = self.initial_outreach_1('TIMEOUT')
-            self.timeout = threading.Timer(MAX_DELAY, self.no_reply, args=[conn])
-            self.timeout.start()
-        else:
-            msg = self.giveup_frustrated_1(None)
-        self.send(conn, msg, False)
+    # def no_reply(self, conn):
+    #     log.info('Sending no reply message')
+    #     if self.state == INITIAL_OUTREACH_1:
+    #         msg = self.initial_outreach_1('TIMEOUT')
+    #         self.timeout = threading.Timer(MAX_DELAY, self.no_reply, args=[conn])
+    #         self.timeout.start()
+    #     else:
+    #         msg = self.giveup_frustrated_1(None)
+    #     self.send(conn, msg, False)
 
     def forget(self):
         self.state = START
