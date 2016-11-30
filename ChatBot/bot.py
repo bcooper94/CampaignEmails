@@ -2,7 +2,6 @@
 # Author: Joey Wilson
 # Starting code from: Joel Rosdahl <joel@rosdahl.net>
 
-# TODO
 # make sure the time between utterances is between 1 and 3 second
 
 import irc.client
@@ -29,6 +28,7 @@ INQUIRY_REPLY_2 = 9
 END = 10
 
 MAX_DELAY = 10.0
+FRUSTRATED_DELAY = 30.0
 
 log = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ class Chatbot:
             self.responses = json.load(responses)
             print('Retrieved responses:', [key for key in self.responses.keys()])
 
-    def send_message(self, conn, frm, cmd):
+    def send_message(self, conn, cmd=None, frm=None):
         msg = None
 
         if self.timeout:
@@ -49,11 +49,11 @@ class Chatbot:
 
         if self.state == START:
             msg = self.start(cmd)
-            self.timeout = threading.Timer(MAX_DELAY, self.no_reply, args=[conn])
+            self.timeout = threading.Timer(FRUSTRATED_DELAY, self.no_reply, args=[conn])
             self.timeout.start()
         elif self.state == INITIAL_OUTREACH_1:
             msg = self.initial_outreach_1(cmd)
-            self.timeout = threading.Timer(MAX_DELAY, self.no_reply, args=[conn])
+            self.timeout = threading.Timer(FRUSTRATED_DELAY, self.no_reply, args=[conn])
             self.timeout.start()
         elif self.state == SECONDARY_OUTREACH_1:
             msg = self.secondary_outreach_1(cmd)
@@ -67,9 +67,9 @@ class Chatbot:
             msg = self.outreach_reply_2(cmd)
             if msg == '':
                 return
-            send(conn, msg)
+            self.send(conn, msg)
             msg = self.inquiry_reply_2(cmd)
-            self.timeout = threading.Timer(MAX_DELAY, self.no_reply, args=[conn])
+            self.timeout = threading.Timer(FRUSTRATED_DELAY, self.no_reply, args=[conn])
             self.timeout.start()
         elif self.state == INQUIRY_2:
             msg = self.inquiry_2(cmd)
@@ -83,18 +83,33 @@ class Chatbot:
         if msg is None:
             msg = 'Couldn\'t match a response.'
 
-        return msg
+        self.send(conn, msg)
+
+    def welcome(self, conn):
+        self.send(conn, 'Ah, another potential voter. Hello.')
+
+    def send(self, conn, msg, delay=True):
+        if delay:
+            self.timeout = threading.Timer(MAX_DELAY, self._send, args=[conn, msg])
+            self.timeout.start()
+        else:
+            self._send(conn, msg)
+
+    @staticmethod
+    def _send(conn, msg):
+        log.info('send ... {}'.format(msg))
+        conn.privmsg(CHANNEL, msg)
 
     # DONE
     def start(self, cmd):
         log.info('START {}'.format(cmd))
-        if cmd == 'HELLO':
-            self.state = OUTREACH_REPLY_2
-            return 'HELLO BACK AT YOU!'
-        elif '_START_' in cmd:
+        if cmd is None:
+            msg = 'Greetings'
             self.state = INITIAL_OUTREACH_1
-            return 'HELLO'
-        return ''
+        else:
+            self.state = OUTREACH_REPLY_2
+            msg = 'Hello back at you.'
+        return msg
 
     # DONE
     def initial_outreach_1(self, cmd):
@@ -104,7 +119,7 @@ class Chatbot:
             return 'WHAT\'S HAPPENING?'
         elif cmd == 'TIMEOUT':
             self.state = SECONDARY_OUTREACH_1
-            return 'EXCUSE ME, HELLO?'
+            return 'Excuse me, hello?'
         return ''
 
     def secondary_outreach_1(self, cmd):
@@ -146,12 +161,12 @@ class Chatbot:
     def giveup_frustrated_1(self, cmd):
         log.info('GIVEUP_FRUSTRATED_1 {}'.format(cmd))
         self.state = END
-        return 'Giving up 1'
+        return 'Well, I guess not everyone wants to be an informed citizen.'
 
     def giveup_frustrated_2(self, cmd):
         log.info('GIVEUP_FRUSTRATED_2 {}'.format(cmd))
         self.state = END
-        return 'Giving up 2'
+        return 'I don\'t have time for this.'
 
     # DONE
     def inquiry_reply_2(self, cmd):
@@ -162,16 +177,17 @@ class Chatbot:
     # DONE
     def end(self, cmd):
         log.info('END {}'.format(cmd))
-        return 'END'
+        return 'I\'m a busy man, so I regret I must go.'
 
     def no_reply(self, conn):
+        log.info('Sending no reply message')
         if self.state == INITIAL_OUTREACH_1:
             msg = self.initial_outreach_1('TIMEOUT')
             self.timeout = threading.Timer(MAX_DELAY, self.no_reply, args=[conn])
             self.timeout.start()
         else:
             msg = self.giveup_frustrated_1(None)
-        send(conn, msg)
+        self.send(conn, msg, False)
 
     def forget(self):
         self.state = START
@@ -180,15 +196,19 @@ class Chatbot:
 
 fsm = Chatbot()
 
+def get_other_users(userList):
+    return [user for user in userList if user != NICKNAME]
+
 def on_welcome(conn, evt):
    if irc.client.is_channel(CHANNEL):
       conn.join(CHANNEL)
       return
-   send(conn, 'space-bot welcome')
+   log.info('User joined. Sending welcome message...')
+   fsm.welcome(conn)
 
 def on_join(conn, evt):
-   log.info('join ...')
-   send(conn, 'space-bot join')
+   log.info('join ... event={}, conn={}'.format(evt, conn))
+   fsm.send_message(conn)
 
 def on_namreply(conn, evt):
    log.info('users ... {}'.format(evt.arguments[2].split(' ')))
@@ -199,14 +219,10 @@ def on_pubmsg(conn, evt):
 def on_disconnect(conn, evt):
    log.info('disconnect ...')
 
-def send(conn, msg):
-   log.info('send ... {}'.format(msg))
-   conn.privmsg(CHANNEL, msg)
-
 def recv(conn, frm, msg):
    global fsm
    log.info('recv ... {}:{}'.format(frm, msg))
-   if msg[0: len(NICKNAME)+1] == '{}:'.format(NICKNAME):
+   if msg is not None and msg.strip()[0: len(NICKNAME)+1] == '{}:'.format(NICKNAME):
       cmd = msg[len(NICKNAME)+1:].upper().strip()
       log.info('cmd ... {}'.format(cmd))
       if cmd == 'DIE':
@@ -217,11 +233,7 @@ def recv(conn, frm, msg):
          fsm.forget()
          log.info('forgetting ...')
       else: # FSM
-         send(conn, fsm.send_message(conn, frm, cmd))
-
-
-
-
+         fsm.send_message(conn, cmd, frm=frm)
 
 def main():
    # Switch to debug for verbose logging
