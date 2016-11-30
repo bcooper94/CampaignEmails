@@ -28,7 +28,7 @@ INQUIRY_REPLY_2 = 9
 END = 10
 
 MAX_DELAY = 10.0
-FRUSTRATED_DELAY = 30.0
+FRUSTRATED_DELAY = 10.0
 
 log = logging.getLogger(__name__)
 
@@ -37,147 +37,139 @@ class Chatbot:
         self.state = START
         self.voicedResponses = {}
         self.timeout = None
+        self.states = {}
+        self.states[START] = 'START'
+        self.states[INITIAL_OUTREACH_1] = 'INITIAL_OUTREACH_1'
+        self.states[SECONDARY_OUTREACH_1] = 'SECONDARY_OUTREACH_1'
+        self.states[GIVEUP_FRUSTRATED_1] = 'GIVEUP_FRUSTRATED_1'
+        self.states[INQUIRY_1] = 'INQUIRY_1'
+        self.states[INQUIRY_REPLY_1] = 'INQUIRY_REPLY_1'
+        self.states[OUTREACH_REPLY_2] = 'OUTREACH_REPLY_2'
+        self.states[INQUIRY_2] = 'INQUIRY_2'
+        self.states[GIVEUP_FRUSTRATED_2] = 'GIVEUP_FRUSTRATED_2'
+        self.states[INQUIRY_REPLY_2] = 'INQUIRY_REPLY_2'
+        self.states[END] = 'END'
         with open('responses.json') as responses:
             self.responses = json.load(responses)
             print('Retrieved responses:', [key for key in self.responses.keys()])
 
-    def send_message(self, conn, cmd=None, frm=None):
-        msg = None
-
+    def respond(self, conn, cmd=None, frm=None):
         if self.timeout:
             self.timeout.cancel()
 
         if self.state == START:
-            msg = self.start(cmd)
-            self.timeout = threading.Timer(FRUSTRATED_DELAY, self.no_reply, args=[conn])
-            self.timeout.start()
+            self.initial_outreach_1(conn)
         elif self.state == INITIAL_OUTREACH_1:
-            msg = self.initial_outreach_1(cmd)
-            self.timeout = threading.Timer(FRUSTRATED_DELAY, self.no_reply, args=[conn])
-            self.timeout.start()
+            self.outreach_reply_2(cmd, conn)
         elif self.state == SECONDARY_OUTREACH_1:
-            msg = self.secondary_outreach_1(cmd)
-        elif self.state == GIVEUP_FRUSTRATED_1:
-            msg = self.giveup_frustrated_1(cmd)
+            self.outreach_reply_2(cmd, conn)
+        # elif self.state == GIVEUP_FRUSTRATED_1:
+        #     self.giveup_frustrated_1(conn)
         elif self.state == INQUIRY_1:
-            msg = self.inquiry_1(cmd)
+            self.inquiry_reply_2(cmd, conn)
         elif self.state == INQUIRY_REPLY_1:
-            msg = self.inquiry_reply_1(cmd)
+            self.end(conn)
         elif self.state == OUTREACH_REPLY_2:
-            msg = self.outreach_reply_2(cmd)
-            if msg == '':
-                return
-            self.send(conn, msg)
-            msg = self.inquiry_reply_2(cmd)
-            self.timeout = threading.Timer(FRUSTRATED_DELAY, self.no_reply, args=[conn])
-            self.timeout.start()
+            self.inquiry_1(cmd, conn)
+            # if msg == '':
+            #     return
+            # self.send(conn, msg)
+            # msg = self.inquiry_reply_2(cmd)
+            # self.timeout = threading.Timer(FRUSTRATED_DELAY, self.no_reply, args=[conn])
+            # self.timeout.start()
         elif self.state == INQUIRY_2:
-            msg = self.inquiry_2(cmd)
-        elif self.state == GIVEUP_FRUSTRATED_2:
-            msg = self.giveup_frustrated_2(cmd)
+            self.inquiry_reply_1(cmd, conn)
+        # elif self.state == GIVEUP_FRUSTRATED_2:
+        #     self.giveup_frustrated_2(cmd, conn)
         elif self.state == INQUIRY_REPLY_2:
-            msg = self.inquiry_reply_2(cmd)
-        if self.state == END:
-            msg = self.end(cmd)
-
-        if msg is None:
-            msg = 'Couldn\'t match a response.'
-
-        self.send(conn, msg)
+            self.inquiry_2(cmd, conn)
+        # if self.state == END:
+        #     self.end(conn)
 
     def welcome(self, conn):
         self.send(conn, 'Ah, another potential voter. Hello.')
 
     def send(self, conn, msg, delay=True):
         if delay:
-            self.timeout = threading.Timer(MAX_DELAY, self._send, args=[conn, msg])
-            self.timeout.start()
+            timer = threading.Timer(MAX_DELAY, self._send, args=[conn, msg])
+            timer.start()
         else:
             self._send(conn, msg)
 
-    @staticmethod
-    def _send(conn, msg):
+    def _send(self, conn, msg):
         log.info('send ... {}'.format(msg))
         conn.privmsg(CHANNEL, msg)
 
-    # DONE
-    def start(self, cmd):
-        log.info('START {}'.format(cmd))
-        if cmd is None:
-            msg = 'Greetings'
-            self.state = INITIAL_OUTREACH_1
-        else:
-            self.state = OUTREACH_REPLY_2
-            msg = 'Hello back at you.'
-        return msg
+        # Set timers for frustrated replies
+        if self.state == INITIAL_OUTREACH_1:
+            self.timeout = threading.Timer(FRUSTRATED_DELAY, self.secondary_outreach_1, args=[conn])
+            self.timeout.start()
+        elif self.state == SECONDARY_OUTREACH_1 or self.state == OUTREACH_REPLY_2\
+                or self.state == INQUIRY_1 or self.state == INQUIRY_2:
+            self.timeout = threading.Timer(FRUSTRATED_DELAY, self.giveup_frustrated_1, args=[conn])
+            self.timeout.start()
 
     # DONE
-    def initial_outreach_1(self, cmd):
-        log.info('INITIAL_OUTREACH_1 {}'.format(cmd))
-        if cmd == 'HELLO BACK AT YOU!':
-            self.state = INQUIRY_1
-            return 'WHAT\'S HAPPENING?'
-        elif cmd == 'TIMEOUT':
-            self.state = SECONDARY_OUTREACH_1
-            return 'Excuse me, hello?'
-        return ''
+    def initial_outreach_1(self, conn):
+        self._change_state(INITIAL_OUTREACH_1)
+        self.send(conn, 'Hello. I\'m {}, the next president of the United States.'.format(NICKNAME))
 
-    def secondary_outreach_1(self, cmd):
-        log.info('SECONDARY_OUTREACH_1 {}'.format(cmd))
-        if cmd == 'HELLO BACK AT YOU!':
-            self.state = INQUIRY_1
-            return 'WHAT\'S HAPPENING?'
-        return ''
+    def secondary_outreach_1(self, conn):
+        log.info('Conn:' + str(conn))
+        self._change_state(SECONDARY_OUTREACH_1)
+        self.send(conn, 'Excuse me? Don\'t you want to help make America great again?', False)
 
     # DONE
-    def inquiry_1(self, cmd):
-        log.info('INQUIRY_1 {}'.format(cmd))
-        if cmd == 'AND YOURSELF?':
-            self.state = INQUIRY_REPLY_1
-            return 'I\'M FINE THANKS FOR ASKING'
-        return ''
+    def inquiry_1(self, message, conn):
+        self._change_state(INQUIRY_1)
+        # TODO: Generate INQUIRY_1
+        self.send(conn, 'Generating INQUIRY_1...')
 
     # DONE
-    def inquiry_reply_1(self, cmd):
-        log.info('INQUIRY_REPLY_1 {}'.format(cmd))
-        self.state = END
-        return ''
+    def inquiry_reply_1(self, message, conn):
+        self._change_state(INQUIRY_REPLY_1)
+        # TODO: Generate INQUIRY_REPLY_1 message
+        self.send(conn, 'Generating INQUIRY_REPLY_1')
+        self.respond(conn)
 
     # DONE
-    def outreach_reply_2(self, cmd):
-        log.info('OUTREACH_REPLY_2 {}'.format(cmd))
-        if cmd == 'WHAT\'S HAPPENING?':
-            self.state = INQUIRY_REPLY_2
-            return 'I\'M FINE'
-        return ''
+    def outreach_reply_2(self, message, conn):
+        # if cmd == 'WHAT\'S HAPPENING?':
+        self._change_state(OUTREACH_REPLY_2)
+        # TODO: Generate INQUIRY_1 response
+        self.send(conn, 'Generating OUTREACH_REPLY_2')
+        # return 'I\'M FINE'
 
     # DONE
-    def inquiry_2(self, cmd):
-        log.info('INQUIRY_2 {}'.format(cmd))
-        self.state = END
-        return ''
+    def inquiry_2(self, cmd, conn):
+        self._change_state(INQUIRY_2)
+        # TODO: Generate INQUIRY_2
+        self.send(conn, 'Generating INQUIRY_2')
 
     # DONE
-    def giveup_frustrated_1(self, cmd):
-        log.info('GIVEUP_FRUSTRATED_1 {}'.format(cmd))
-        self.state = END
-        return 'Well, I guess not everyone wants to be an informed citizen.'
+    def giveup_frustrated_1(self, conn):
+        self._change_state(GIVEUP_FRUSTRATED_1)
+        self.send(conn, 'Well, I guess not everyone wants to be an informed citizen.', False)
+        self.end(conn)
 
-    def giveup_frustrated_2(self, cmd):
-        log.info('GIVEUP_FRUSTRATED_2 {}'.format(cmd))
-        self.state = END
-        return 'I don\'t have time for this.'
-
-    # DONE
-    def inquiry_reply_2(self, cmd):
-        log.info('INQUIRY_REPLY_2 {}'.format(cmd))
-        self.state = INQUIRY_2
-        return 'AND YOURSELF?'
+    def giveup_frustrated_2(self, message, conn):
+        log.info('GIVEUP_FRUSTRATED_2 {}'.format(message))
+        self._change_state(GIVEUP_FRUSTRATED_2)
+        self.send(conn, 'I don\'t have time for this.', False)
 
     # DONE
-    def end(self, cmd):
-        log.info('END {}'.format(cmd))
-        return 'I\'m a busy man, so I regret I must go.'
+    def inquiry_reply_2(self, message, conn):
+        log.info('INQUIRY_REPLY_2 {}'.format(message))
+        self._change_state(INQUIRY_REPLY_2)
+        # TODO: Generate INQUIRY_REPLY_2
+        self.send(conn, 'Generating INQUIRY_REPLY_2')
+        self.respond(conn)
+
+    # DONE
+    def end(self, conn):
+        self._change_state(END)
+        # self.send(conn, 'I\'m glad we had the chance to meet, however I\'m a busy man, so I regret I must go. Goodbye, fellow Americans.')
+        self.send(conn, 'Goodbye.')
 
     def no_reply(self, conn):
         log.info('Sending no reply message')
@@ -193,6 +185,10 @@ class Chatbot:
         self.state = START
         self.voicedResponses = {}
 
+    def _change_state(self, newState):
+        log.info('{} -> {}'.format(self.states[self.state], self.states[newState]))
+        self.state = newState
+
 
 fsm = Chatbot()
 
@@ -200,15 +196,15 @@ def get_other_users(userList):
     return [user for user in userList if user != NICKNAME]
 
 def on_welcome(conn, evt):
+   log.info('User joined. Sending welcome message...')
    if irc.client.is_channel(CHANNEL):
       conn.join(CHANNEL)
       return
-   log.info('User joined. Sending welcome message...')
    fsm.welcome(conn)
 
 def on_join(conn, evt):
    log.info('join ... event={}, conn={}'.format(evt, conn))
-   fsm.send_message(conn)
+   fsm.respond(conn)
 
 def on_namreply(conn, evt):
    log.info('users ... {}'.format(evt.arguments[2].split(' ')))
@@ -221,7 +217,7 @@ def on_disconnect(conn, evt):
 
 def recv(conn, frm, msg):
    global fsm
-   log.info('recv ... {}:{}'.format(frm, msg))
+   log.info('recv ... {}={}'.format(frm, msg))
    if msg is not None and msg.strip()[0: len(NICKNAME)+1] == '{}:'.format(NICKNAME):
       cmd = msg[len(NICKNAME)+1:].upper().strip()
       log.info('cmd ... {}'.format(cmd))
@@ -233,7 +229,8 @@ def recv(conn, frm, msg):
          fsm.forget()
          log.info('forgetting ...')
       else: # FSM
-         fsm.send_message(conn, cmd, frm=frm)
+         log.info('Responding...')
+         fsm.respond(conn, cmd, frm=frm)
 
 def main():
    # Switch to debug for verbose logging
