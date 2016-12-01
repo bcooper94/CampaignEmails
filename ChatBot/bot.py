@@ -37,8 +37,8 @@ END = 10
 ROLE_FIRST = 1
 ROLE_SECOND = 2
 
-MAX_DELAY = 10.0
-FRUSTRATED_DELAY = 10.0
+MAX_DELAY = 6.0
+FRUSTRATED_DELAY = 30.0
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +57,11 @@ end_frustrated_messages = [
 ]
 end_messages = [
     'Well, this has been an interesting exchange. I\'m glad we could talk, and remember to vote for the best candidate in the upcoming election.',
-    'Well, I\'m afraid I need to go. Don\' forget to vote in the upcoming election!'
+    'Well, I\'m afraid I need to go. Don\'t forget to vote in the upcoming election!'
+]
+transitions = [
+    'Well, I\'m glad you mentioned that. ',
+    'I\'m glad you mentioned that. '
 ]
 
 class Chatbot:
@@ -136,6 +140,7 @@ class Chatbot:
         log.debug(nltk.pos_tag(tokenizedQuery))
         # tag query tokens and save only nouns and verbs
         tokenizedQuery = [word.lower() for (word, tag) in nltk.pos_tag(tokenizedQuery) if tag in {'VB', 'VBP', 'NN', 'NNS'}]
+        log.info('Tokenized response: ' + str(tokenizedQuery))
 
         scores = defaultdict(float)  # the accumulated relevance scores of each document to the query
         for word in tokenizedQuery:
@@ -148,10 +153,10 @@ class Chatbot:
 
         try:
             topic = max(scores, key=scores.get)
+            if max(scores.values()) < .0001:    #hack to allow us to work with the max of a list of floats
+                topic = None
         except ValueError:
-            topic = None
-
-        if max(scores.values()) < .0001:    #hack to allow us to work with the max of a list of floats
+            log.info('Value error')
             topic = None
 
         log.debug(scores)
@@ -171,6 +176,7 @@ class Chatbot:
         return response
 
     def respond(self, conn, cmd=None, frm=None):
+        log.info('Message: ' + str(cmd))
         if self.timeout:
             log.info('Canceling timeout')
             self.timeout.cancel()
@@ -259,7 +265,7 @@ class Chatbot:
     def inquiry_reply_1(self, message, conn):
         self._change_state(INQUIRY_REPLY_1)
         if self.role == ROLE_FIRST:
-            self.send(conn, self.generate_response(message))
+            self.send(conn, random.choice(transitions) + self.generate_response(message))
         else:
             self.respond(conn, message)
 
@@ -268,7 +274,7 @@ class Chatbot:
         if self.role == ROLE_FIRST:
             self.respond(conn, message)
         else:
-            self.send(conn, 'Generating OUTREACH_REPLY_2')
+            self.send(conn, random.choice(initial_outreaches))
 
     def inquiry_2(self, message, conn):
         self._change_state(INQUIRY_2)
@@ -285,7 +291,7 @@ class Chatbot:
     def inquiry_reply_2(self, message, conn):
         self._change_state(INQUIRY_REPLY_2)
         if self.role == ROLE_SECOND:
-            self.send(conn, self.generate_response(message))
+            self.send(conn, random.choice(transitions) + self.generate_response(message))
 
     def end(self, conn):
         if self.state == GIVEUP_FRUSTRATED:
@@ -297,6 +303,7 @@ class Chatbot:
 
     def forget(self, conn):
         self._change_state(START)
+        self.role = ROLE_FIRST
         self.voicedResponses = {}
         if self.timeout is not None:
             self.timeout.cancel()
@@ -336,17 +343,17 @@ def recv(conn, frm, msg):
    global fsm
    log.info('recv ... {}={}'.format(frm, msg))
    if msg is not None and msg.strip()[0: len(NICKNAME)+1] == '{}:'.format(NICKNAME):
-      cmd = msg[len(NICKNAME)+1:].upper().strip()
-      log.info('cmd ... {}'.format(cmd))
-      if cmd.lower() == 'die':
+      message = msg[len(NICKNAME)+1:].strip()
+      log.info('cmd ... {}'.format(message))
+      if message.lower() == 'die':
          conn.quit('dying')
          sys.exit('dying')
-      elif cmd.lower() == '*FORGET':
+      elif message.lower() == '*FORGET':
          fsm.forget(conn)
          log.info('forgetting ...')
       else: # FSM
          log.info('Responding...')
-         fsm.respond(conn, cmd, frm=frm)
+         fsm.respond(conn, message, frm=frm)
 
 def main():
     # q1 = "what will you do to help veterans in our country?"
