@@ -1,10 +1,6 @@
 # Main driver for the chatbot
-# Author: Joey Wilson
+# Authors: Joey Wilson, Brandon Cooper, Tobias Bleisch
 # Starting code from: Joel Rosdahl <joel@rosdahl.net>
-
-# make sure the time between utterances is between 1 and 3 second
-
-# TODO: Come up with list of concluding questions for INQUIRY_2
 
 import irc.client
 import logging
@@ -19,7 +15,7 @@ from textblob import TextBlob
 
 SERVER = 'irc.freenode.net'
 PORT = 6667
-CHANNEL = '#bccpe582test'
+CHANNEL = '#CPE582testing'
 NICKNAME = 'space-bot'
 
 START = 0
@@ -37,7 +33,8 @@ END = 10
 ROLE_FIRST = 1
 ROLE_SECOND = 2
 
-MAX_DELAY = 6.0
+MIN_DELAY = 5.0
+MAX_DELAY = 10.0
 FRUSTRATED_DELAY = 30.0
 
 log = logging.getLogger(__name__)
@@ -216,7 +213,7 @@ class Chatbot:
 
     def send(self, conn, msg, delay=True):
         if delay:
-            timer = threading.Timer(MAX_DELAY, self._send, args=[conn, msg, self.state])
+            timer = threading.Timer(random.uniform(MIN_DELAY, MAX_DELAY), self._send, args=[conn, msg, self.state])
             timer.start()
         else:
             self._send(conn, msg, self.state)
@@ -358,27 +355,6 @@ def recv(conn, frm, msg):
          fsm.respond(conn, message, frm=frm)
 
 def main():
-    # q1 = "what will you do to help veterans in our country?"
-    # q2 = "what are your plans to rebuild america and get its citizens back on their feet?"
-    # q3 = "how do you plan to protect America's privacy and the American people from cyber threats?"
-    # q4 = "what's your stance on health care?"
-    # q5 = "do you believe in improving our infrastructure?"
-    # q6 = "what's your policy on immigration?"
-    # q7 = "what do you think about energy?"
-    # q8 = "should marijuana be legal?"
-    # q8 = "what do you mean by that?"
-    # q9 = ""
-    # q10 = "sdl;fjasdlkfjasl;kdfjalk;sdjfa ;lskdfj alskdfja s;dklf"
-    #
-    # print('\n')
-    # print(q10)
-    # print('\n')
-    # print(fsm.generate_response(q10))
-    # print(fsm.generate_response(q2))
-    # print(fsm.generate_response(q3))
-    # print(fsm.generate_response(q4))
-    # print(fsm.generate_response(q5))
-
    # Switch to debug for verbose logging
    logging.basicConfig(level=logging.INFO)
    log.info('start ...')
