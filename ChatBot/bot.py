@@ -25,7 +25,7 @@ NICKNAME = 'space-bot'
 START = 0
 INITIAL_OUTREACH_1 = 1
 SECONDARY_OUTREACH_1 = 2
-GIVEUP_FRUSTRATED_1 = 3
+GIVEUP_FRUSTRATED = 3
 INQUIRY_1 = 4
 INQUIRY_REPLY_1 = 5
 OUTREACH_REPLY_2 = 6
@@ -51,6 +51,14 @@ second_outreaches = [
     'Hello? Do you not want to make America great again?',
     'Hello? I need your commitment if I\'m going to make America great again.'
 ]
+end_frustrated_messages = [
+    'I\'m a busy man and need to get back to campaigning. Goodbye.',
+    'Well, this has been pointless. I need to get back to my campaign.'
+]
+end_messages = [
+    'Well, this has been an interesting exchange. I\'m glad we could talk, and remember to vote for the best candidate in the upcoming election.',
+    'Well, I\'m afraid I need to go. Don\' forget to vote in the upcoming election!'
+]
 
 class Chatbot:
     def __init__(self):
@@ -62,7 +70,7 @@ class Chatbot:
         self.states[START] = 'START'
         self.states[INITIAL_OUTREACH_1] = 'INITIAL_OUTREACH_1'
         self.states[SECONDARY_OUTREACH_1] = 'SECONDARY_OUTREACH_1'
-        self.states[GIVEUP_FRUSTRATED_1] = 'GIVEUP_FRUSTRATED_1'
+        self.states[GIVEUP_FRUSTRATED] = 'GIVEUP_FRUSTRATED_1'
         self.states[INQUIRY_1] = 'INQUIRY_1'
         self.states[INQUIRY_REPLY_1] = 'INQUIRY_REPLY_1'
         self.states[OUTREACH_REPLY_2] = 'OUTREACH_REPLY_2'
@@ -266,7 +274,7 @@ class Chatbot:
             self.send(conn, 'Generating INQUIRY_2')
 
     def giveup_frustrated(self, conn):
-        self._change_state(GIVEUP_FRUSTRATED_1)
+        self._change_state(GIVEUP_FRUSTRATED)
         self.send(conn, 'Well, I guess not everyone wants to be an informed citizen.', False)
         self.end(conn)
 
@@ -277,9 +285,12 @@ class Chatbot:
             self.send(conn, 'Generating INQUIRY_REPLY_2')
 
     def end(self, conn):
+        if self.state == GIVEUP_FRUSTRATED:
+            msg = random.choice(end_frustrated_messages)
+        else:
+            msg = random.choice(end_messages)
         self._change_state(END)
-        # self.send(conn, 'I\'m glad we had the chance to meet, however I\'m a busy man, so I regret I must go. Goodbye, fellow Americans.')
-        self.send(conn, 'Goodbye.')
+        self.send(conn, msg)
 
     def forget(self, conn):
         self._change_state(START)
@@ -324,10 +335,10 @@ def recv(conn, frm, msg):
    if msg is not None and msg.strip()[0: len(NICKNAME)+1] == '{}:'.format(NICKNAME):
       cmd = msg[len(NICKNAME)+1:].upper().strip()
       log.info('cmd ... {}'.format(cmd))
-      if cmd == 'DIE':
+      if cmd.lower() == 'die':
          conn.quit('dying')
          sys.exit('dying')
-      elif cmd == '*FORGET':
+      elif cmd.lower() == '*FORGET':
          fsm.forget(conn)
          log.info('forgetting ...')
       else: # FSM
