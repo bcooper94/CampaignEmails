@@ -103,6 +103,7 @@ class Chatbot:
             blobDict[topic] = TextBlob(blob.lower())
         return blobDict
 
+    #all tf-idf code taken from http://stevenloria.com/finding-important-words-in-a-document-using-tf-idf/
     # calcualte the term frequency of the given word in the given blob
     def tf(self, word, blob):
         return blob.words.count(word) / len(blob.words)
