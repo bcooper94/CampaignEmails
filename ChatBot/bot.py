@@ -11,6 +11,11 @@ import logging
 import sys
 import json
 import threading
+import math, random
+import nltk
+from collections import defaultdict
+from nltk.corpus import stopwords
+from textblob import TextBlob
 
 SERVER = 'irc.freenode.net'
 PORT = 6667
@@ -55,9 +60,89 @@ class Chatbot:
         self.states[GIVEUP_FRUSTRATED_2] = 'GIVEUP_FRUSTRATED_2'
         self.states[INQUIRY_REPLY_2] = 'INQUIRY_REPLY_2'
         self.states[END] = 'END'
-        with open('responses.json') as responses:
-            self.responses = json.load(responses)
+        with open('responses.json') as resps:
+            self.responses = json.load(resps)
             print('Retrieved responses:', [key for key in self.responses.keys()])
+        self.excuses = ["Why don't you ask Obama?", "That's not my prerogative.", "We should deal with ISIS before worrying about that."]
+        self.blobDict = self.create_blob_dict(self.responses)
+
+    # take the structured chat data and return a list of blobs, one for each topic
+    def create_blob_dict(self, chatDataDict):
+        blobDict = dict()
+        # for each topic (e.g. 'infrastructure', 'security', etc.)
+        for topic in chatDataDict:
+            blob = ''
+            # for each response type (e.g. 'attack', 'rhetorical question', etc.)
+            # append the responses to a string
+            for respType in chatDataDict[topic]:
+                blob += ' ' + ' '.join(chatDataDict[topic][respType])
+            log.debug('blob text', blob.lower())
+            blobDict[topic] = TextBlob(blob.lower())
+        return blobDict
+
+    # calcualte the term frequency of the given word in the given blob
+    def tf(self, word, blob):
+        return blob.words.count(word) / len(blob.words)
+
+    # calculate the number of blobs containing the word
+    def n_containing(self, word, bloblist):
+        return sum(1 for blob in bloblist if word in blob.words)
+
+    # calculate the inverse document frequency of the given word and bloblist
+    def idf(self, word, bloblist):
+        return math.log(len(bloblist) / (1 + self.n_containing(word, bloblist)))
+
+    # calculate the tf-idf of the given word and bloblist
+    def tfidf(self, word, blob, bloblist):
+        return self.tf(word, blob) * self.idf(word, bloblist)
+
+    # generate a response to the input query given a corpus of chat data
+    def generate_response(self, query):
+        topic = self.map_query_to_topic(query, self.blobDict)
+        if not topic:
+            return random.choice(self.excuses)
+        return self.choose_response(self.responses[topic])
+
+    # map the incoming user query to a response topic
+    def map_query_to_topic(self, query, blobDict):
+        # remove stop words and tokenize
+        tokenizedQuery = [word for word in nltk.word_tokenize(query) if word not in stopwords.words('english')]
+        log.debug(nltk.pos_tag(tokenizedQuery))
+        # tag query tokens and save only nouns and verbs
+        tokenizedQuery = [word.lower() for (word, tag) in nltk.pos_tag(tokenizedQuery) if tag in {'VB', 'VBP', 'NN', 'NNS'}]
+
+        scores = defaultdict(float)  # the accumulated relevance scores of each document to the query
+        for word in tokenizedQuery:
+            for topic, blob in blobDict.items():
+                # add the relevancy score of the current word to that of the current blob (topic)
+                tfidf = self.tfidf(word, blob, blobDict.values())
+                scores[topic] += tfidf
+
+                log.debug('topic:', topic, ' word:', word, ' score:', scores[topic])
+
+        try:
+            topic = max(scores, key=scores.get)
+        except ValueError:
+            topic = None
+
+        if max(scores.values()) < .0001:    #hack to allow us to work with the max of a list of floats
+            topic = None
+
+        log.debug(scores)
+        log.debug(topic)
+        return topic
+
+    # given a topic dictionary (e.g. responses, attacks, leading questions of 'child care' topic),
+    # randomly choose either a response or attack and potentially append a leading question
+    def choose_response(self, topicDict):
+        response = ''
+        if random.choice([True, False]):
+            response += random.choice(topicDict['leadingQuestions']) + ' '
+        replies = topicDict['responses']
+        replies.extend(topicDict['attacks'])
+        response += random.choice(replies)
+
+        return response
 
     def respond(self, conn, cmd=None, frm=None):
         if self.timeout:
@@ -240,6 +325,27 @@ def recv(conn, frm, msg):
          fsm.respond(conn, cmd, frm=frm)
 
 def main():
+    # q1 = "what will you do to help veterans in our country?"
+    # q2 = "what are your plans to rebuild america and get its citizens back on their feet?"
+    # q3 = "how do you plan to protect America's privacy and the American people from cyber threats?"
+    # q4 = "what's your stance on health care?"
+    # q5 = "do you believe in improving our infrastructure?"
+    # q6 = "what's your policy on immigration?"
+    # q7 = "what do you think about energy?"
+    # q8 = "should marijuana be legal?"
+    # q8 = "what do you mean by that?"
+    # q9 = ""
+    # q10 = "sdl;fjasdlkfjasl;kdfjalk;sdjfa ;lskdfj alskdfja s;dklf"
+    #
+    # print('\n')
+    # print(q10)
+    # print('\n')
+    # print(fsm.generate_response(q10))
+    # print(fsm.generate_response(q2))
+    # print(fsm.generate_response(q3))
+    # print(fsm.generate_response(q4))
+    # print(fsm.generate_response(q5))
+
    # Switch to debug for verbose logging
    logging.basicConfig(level=logging.INFO)
    log.info('start ...')

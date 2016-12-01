@@ -42,7 +42,7 @@ def count_cands(mboxes):
 
 def main():
    global MM
-   mboxes = CampaignEmails.extractMboxes('Takeout/Mail/')
+   mboxes = CampaignEmails.extractMboxes('Takeout1/Mail/')
    email_counts = count_cands(mboxes)
    f = open('./data.json')
    graph_data = json.loads(f.read())
