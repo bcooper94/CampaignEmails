@@ -82,6 +82,7 @@ class Chatbot:
             self.responses = json.load(resps)
             print('Retrieved responses:', [key for key in self.responses.keys()])
         self.excuses = ["Why don't you ask Obama?", "That's not my prerogative.", "We should deal with ISIS before worrying about that."]
+        self.excuseQuestions = ["Can I assume that I have your vote?", "So you're going to vote for me, right?", "How do you want to make America great again?"]
         self.blobDict = self.create_blob_dict(self.responses)
 
     # take the structured chat data and return a list of blobs, one for each topic
@@ -120,6 +121,13 @@ class Chatbot:
         if not topic:
             return random.choice(self.excuses)
         return self.choose_response(self.responses[topic])
+
+    # generate a response to the input query given a corpus of chat data
+    def generate_question(self, query):
+        topic = self.map_query_to_topic(query, self.blobDict)
+        if not topic:
+            return random.choice(self.excuseQuestions)
+        return random.choice(self.responses[topic]['leadingQuestions'])
 
     # map the incoming user query to a response topic
     def map_query_to_topic(self, query, blobDict):
@@ -244,16 +252,14 @@ class Chatbot:
     def inquiry_1(self, message, conn):
         self._change_state(INQUIRY_1)
         if self.role == ROLE_FIRST:
-            # TODO: Generate INQUIRY_1
-            self.send(conn, 'Generating INQUIRY_1...')
+            self.send(conn, self.generate_question(message))
         else:
             self.respond(conn, message)
 
     def inquiry_reply_1(self, message, conn):
         self._change_state(INQUIRY_REPLY_1)
         if self.role == ROLE_FIRST:
-            # TODO: Generate INQUIRY_REPLY_1 message
-            self.send(conn, 'Generating INQUIRY_REPLY_1')
+            self.send(conn, self.generate_response(message))
         else:
             self.respond(conn, message)
 
@@ -262,16 +268,14 @@ class Chatbot:
         if self.role == ROLE_FIRST:
             self.respond(conn, message)
         else:
-            # TODO: Generate INQUIRY_1 response
             self.send(conn, 'Generating OUTREACH_REPLY_2')
 
-    def inquiry_2(self, cmd, conn):
+    def inquiry_2(self, message, conn):
         self._change_state(INQUIRY_2)
         if self.role == ROLE_FIRST:
-            self.respond(conn, cmd)
+            self.respond(conn, message)
         else:
-            # TODO: Generate INQUIRY_2
-            self.send(conn, 'Generating INQUIRY_2')
+            self.send(conn, self.generate_question(message))
 
     def giveup_frustrated(self, conn):
         self._change_state(GIVEUP_FRUSTRATED)
@@ -281,8 +285,7 @@ class Chatbot:
     def inquiry_reply_2(self, message, conn):
         self._change_state(INQUIRY_REPLY_2)
         if self.role == ROLE_SECOND:
-            # TODO: Generate INQUIRY_REPLY_2
-            self.send(conn, 'Generating INQUIRY_REPLY_2')
+            self.send(conn, self.generate_response(message))
 
     def end(self, conn):
         if self.state == GIVEUP_FRUSTRATED:
