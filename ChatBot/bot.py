@@ -86,7 +86,10 @@ class Chatbot:
             self.responses = json.load(resps)
             print('Retrieved responses:', [key for key in self.responses.keys()])
         self.excuses = ["Why don't you ask Obama?", "That's not my prerogative.", "We should deal with ISIS before worrying about that."]
-        self.excuseQuestions = ["Can I assume that I have your vote?", "So you're going to vote for me, right?", "How do you want to make America great again?"]
+        self.excuseQuestions = ["Aren't you here to ask me about my opinions on taxes, or foreign policy or something? Maybe the state of our defense spending?",
+                                "What are your primary concerns about the state of our government?",
+                                "Are there any specific issues concerning our government that stick out most to you?",
+                                "In your opinion, what are the most important issues facing our government?"]
         self.blobDict = self.create_blob_dict(self.responses)
 
     # take the structured chat data and return a list of blobs, one for each topic
