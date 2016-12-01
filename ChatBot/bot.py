@@ -14,7 +14,7 @@ import threading
 
 SERVER = 'irc.freenode.net'
 PORT = 6667
-CHANNEL = '#joeycpe582test'
+CHANNEL = '#bccpe582test'
 NICKNAME = 'space-bot'
 
 START = 0
@@ -81,8 +81,6 @@ class Chatbot:
             self.outreach_reply_2(cmd, conn)
         elif self.state == SECONDARY_OUTREACH_1:
             self.outreach_reply_2(cmd, conn)
-        # elif self.state == GIVEUP_FRUSTRATED_1:
-        #     self.giveup_frustrated_1(conn)
         elif self.state == INQUIRY_1:
             self.inquiry_reply_2(cmd, conn)
         elif self.state == INQUIRY_REPLY_1:
@@ -91,8 +89,6 @@ class Chatbot:
             self.inquiry_1(cmd, conn)
         elif self.state == INQUIRY_2:
             self.inquiry_reply_1(cmd, conn)
-        # elif self.state == GIVEUP_FRUSTRATED_2:
-        #     self.giveup_frustrated_2(cmd, conn)
         elif self.state == INQUIRY_REPLY_2:
             self.inquiry_2(cmd, conn)
 
@@ -129,10 +125,9 @@ class Chatbot:
         elif state == SECONDARY_OUTREACH_1 or state == OUTREACH_REPLY_2\
                 or state == INQUIRY_1 or state == INQUIRY_2:
             log.info('Setting timer for giving up')
-            self.timeout = threading.Timer(FRUSTRATED_DELAY, self.giveup_frustrated_1, args=[conn])
+            self.timeout = threading.Timer(FRUSTRATED_DELAY, self.giveup_frustrated, args=[conn])
             self.timeout.start()
 
-    # DONE
     def initial_outreach_1(self, conn):
         log.info('Role: FIRST')
         self.role = ROLE_FIRST
@@ -140,11 +135,9 @@ class Chatbot:
         self.send(conn, 'Hello. I\'m {}, the next president of the United States.'.format(NICKNAME), False)
 
     def secondary_outreach_1(self, conn):
-        log.info('Conn:' + str(conn))
         self._change_state(SECONDARY_OUTREACH_1)
         self.send(conn, 'Excuse me? Don\'t you want to help make America great again?', False)
 
-    # DONE
     def inquiry_1(self, message, conn):
         self._change_state(INQUIRY_1)
         if self.role == ROLE_FIRST:
@@ -153,7 +146,6 @@ class Chatbot:
         else:
             self.respond(conn, message)
 
-    # DONE
     def inquiry_reply_1(self, message, conn):
         self._change_state(INQUIRY_REPLY_1)
         if self.role == ROLE_FIRST:
@@ -162,9 +154,7 @@ class Chatbot:
         else:
             self.respond(conn, message)
 
-    # DONE
     def outreach_reply_2(self, message, conn):
-        # if cmd == 'WHAT\'S HAPPENING?':
         self._change_state(OUTREACH_REPLY_2)
         if self.role == ROLE_FIRST:
             self.respond(conn, message)
@@ -172,7 +162,6 @@ class Chatbot:
             # TODO: Generate INQUIRY_1 response
             self.send(conn, 'Generating OUTREACH_REPLY_2')
 
-    # DONE
     def inquiry_2(self, cmd, conn):
         self._change_state(INQUIRY_2)
         if self.role == ROLE_FIRST:
@@ -181,28 +170,17 @@ class Chatbot:
             # TODO: Generate INQUIRY_2
             self.send(conn, 'Generating INQUIRY_2')
 
-    # DONE
-    def giveup_frustrated_1(self, conn):
+    def giveup_frustrated(self, conn):
         self._change_state(GIVEUP_FRUSTRATED_1)
         self.send(conn, 'Well, I guess not everyone wants to be an informed citizen.', False)
         self.end(conn)
 
-    def giveup_frustrated_2(self, message, conn):
-        log.info('GIVEUP_FRUSTRATED_2 {}'.format(message))
-        self._change_state(GIVEUP_FRUSTRATED_2)
-        self.send(conn, 'I don\'t have time for this.', False)
-
-    # DONE
     def inquiry_reply_2(self, message, conn):
-        log.info('INQUIRY_REPLY_2 {}'.format(message))
         self._change_state(INQUIRY_REPLY_2)
-        # if self.role == ROLE_FIRST:
-        #     self.respond(conn, message)
         if self.role == ROLE_SECOND:
             # TODO: Generate INQUIRY_REPLY_2
             self.send(conn, 'Generating INQUIRY_REPLY_2')
 
-    # DONE
     def end(self, conn):
         self._change_state(END)
         # self.send(conn, 'I\'m glad we had the chance to meet, however I\'m a busy man, so I regret I must go. Goodbye, fellow Americans.')
@@ -255,7 +233,6 @@ def recv(conn, frm, msg):
          conn.quit('dying')
          sys.exit('dying')
       elif cmd == '*FORGET':
-         # fsm.state = fsm.START
          fsm.forget(conn)
          log.info('forgetting ...')
       else: # FSM
