@@ -167,8 +167,6 @@ class Chatbot:
     # randomly choose either a response or attack and potentially append a leading question
     def choose_response(self, topicDict):
         response = ''
-        if random.choice([True, False]):
-            response += random.choice(topicDict['leadingQuestions']) + ' '
         replies = topicDict['responses']
         replies.extend(topicDict['attacks'])
         response += random.choice(replies)
@@ -348,7 +346,7 @@ def recv(conn, frm, msg):
       if message.lower() == 'die':
          conn.quit('dying')
          sys.exit('dying')
-      elif message.lower() == '*FORGET':
+      elif message.lower() == '*forget':
          fsm.forget(conn)
          log.info('forgetting ...')
       else: # FSM
