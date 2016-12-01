@@ -4,6 +4,8 @@
 
 # make sure the time between utterances is between 1 and 3 second
 
+# TODO: Come up with list of concluding questions for INQUIRY_2
+
 import irc.client
 import logging
 import sys
@@ -27,6 +29,9 @@ GIVEUP_FRUSTRATED_2 = 8
 INQUIRY_REPLY_2 = 9
 END = 10
 
+ROLE_FIRST = 1
+ROLE_SECOND = 2
+
 MAX_DELAY = 10.0
 FRUSTRATED_DELAY = 10.0
 
@@ -37,6 +42,7 @@ class Chatbot:
         self.state = START
         self.voicedResponses = {}
         self.timeout = None
+        self.role = ROLE_FIRST
         self.states = {}
         self.states[START] = 'START'
         self.states[INITIAL_OUTREACH_1] = 'INITIAL_OUTREACH_1'
@@ -58,8 +64,19 @@ class Chatbot:
             log.info('Canceling timeout')
             self.timeout.cancel()
 
+        if self.state == END:
+            self._change_state(START)
         if self.state == START:
-            self.initial_outreach_1(conn)
+            if cmd is None:
+                # If timer goes off, we initiate outreach and take role as first speaker
+                self.timeout = threading.Timer(MAX_DELAY, self.initial_outreach_1, args=[conn])
+                self.timeout.start()
+            else:
+                # else we are second speaker
+                log.info('Role: SECOND')
+                self.role = ROLE_SECOND
+                self._change_state(INITIAL_OUTREACH_1)
+                self.respond(conn, cmd)
         elif self.state == INITIAL_OUTREACH_1:
             self.outreach_reply_2(cmd, conn)
         elif self.state == SECONDARY_OUTREACH_1:
@@ -72,32 +89,24 @@ class Chatbot:
             self.end(conn)
         elif self.state == OUTREACH_REPLY_2:
             self.inquiry_1(cmd, conn)
-            # if msg == '':
-            #     return
-            # self.send(conn, msg)
-            # msg = self.inquiry_reply_2(cmd)
-            # self.timeout = threading.Timer(FRUSTRATED_DELAY, self.no_reply, args=[conn])
-            # self.timeout.start()
         elif self.state == INQUIRY_2:
             self.inquiry_reply_1(cmd, conn)
         # elif self.state == GIVEUP_FRUSTRATED_2:
         #     self.giveup_frustrated_2(cmd, conn)
         elif self.state == INQUIRY_REPLY_2:
             self.inquiry_2(cmd, conn)
-        # if self.state == END:
-        #     self.end(conn)
 
     def welcome(self, conn):
         self.send(conn, 'Ah, another potential voter. Hello.')
 
     def send(self, conn, msg, delay=True):
         if delay:
-            timer = threading.Timer(MAX_DELAY, self._send, args=[conn, msg])
+            timer = threading.Timer(MAX_DELAY, self._send, args=[conn, msg, self.state])
             timer.start()
         else:
-            self._send(conn, msg)
+            self._send(conn, msg, self.state)
 
-    def _send(self, conn, msg):
+    def _send(self, conn, msg, state):
         log.info('send ... {}'.format(msg))
         conn.privmsg(CHANNEL, msg)
 
@@ -105,21 +114,30 @@ class Chatbot:
             log.info('Canceling timeout from _send')
             self.timeout.cancel()
 
+        if state == INQUIRY_REPLY_1 and self.role == ROLE_FIRST:
+            log.info('Creating END response')
+            self.respond(conn, msg)
+        if state == INQUIRY_REPLY_2 and self.role == ROLE_SECOND:
+            log.info('Creating INQUIRY_2 response...')
+            self.respond(conn, msg)
+
         # Set timers for frustrated replies
-        if self.state == INITIAL_OUTREACH_1:
+        if state == INITIAL_OUTREACH_1:
             log.info('Setting timer for secondary outreach 1')
             self.timeout = threading.Timer(FRUSTRATED_DELAY, self.secondary_outreach_1, args=[conn])
             self.timeout.start()
-        elif self.state == SECONDARY_OUTREACH_1 or self.state == OUTREACH_REPLY_2\
-                or self.state == INQUIRY_1 or self.state == INQUIRY_2:
+        elif state == SECONDARY_OUTREACH_1 or state == OUTREACH_REPLY_2\
+                or state == INQUIRY_1 or state == INQUIRY_2:
             log.info('Setting timer for giving up')
             self.timeout = threading.Timer(FRUSTRATED_DELAY, self.giveup_frustrated_1, args=[conn])
             self.timeout.start()
 
     # DONE
     def initial_outreach_1(self, conn):
+        log.info('Role: FIRST')
+        self.role = ROLE_FIRST
         self._change_state(INITIAL_OUTREACH_1)
-        self.send(conn, 'Hello. I\'m {}, the next president of the United States.'.format(NICKNAME))
+        self.send(conn, 'Hello. I\'m {}, the next president of the United States.'.format(NICKNAME), False)
 
     def secondary_outreach_1(self, conn):
         log.info('Conn:' + str(conn))
@@ -129,29 +147,39 @@ class Chatbot:
     # DONE
     def inquiry_1(self, message, conn):
         self._change_state(INQUIRY_1)
-        # TODO: Generate INQUIRY_1
-        self.send(conn, 'Generating INQUIRY_1...')
+        if self.role == ROLE_FIRST:
+            # TODO: Generate INQUIRY_1
+            self.send(conn, 'Generating INQUIRY_1...')
+        else:
+            self.respond(conn, message)
 
     # DONE
     def inquiry_reply_1(self, message, conn):
         self._change_state(INQUIRY_REPLY_1)
-        # TODO: Generate INQUIRY_REPLY_1 message
-        self.send(conn, 'Generating INQUIRY_REPLY_1')
-        self.respond(conn)
+        if self.role == ROLE_FIRST:
+            # TODO: Generate INQUIRY_REPLY_1 message
+            self.send(conn, 'Generating INQUIRY_REPLY_1')
+        else:
+            self.respond(conn, message)
 
     # DONE
     def outreach_reply_2(self, message, conn):
         # if cmd == 'WHAT\'S HAPPENING?':
         self._change_state(OUTREACH_REPLY_2)
-        # TODO: Generate INQUIRY_1 response
-        self.send(conn, 'Generating OUTREACH_REPLY_2')
-        # return 'I\'M FINE'
+        if self.role == ROLE_FIRST:
+            self.respond(conn, message)
+        else:
+            # TODO: Generate INQUIRY_1 response
+            self.send(conn, 'Generating OUTREACH_REPLY_2')
 
     # DONE
     def inquiry_2(self, cmd, conn):
         self._change_state(INQUIRY_2)
-        # TODO: Generate INQUIRY_2
-        self.send(conn, 'Generating INQUIRY_2')
+        if self.role == ROLE_FIRST:
+            self.respond(conn, cmd)
+        else:
+            # TODO: Generate INQUIRY_2
+            self.send(conn, 'Generating INQUIRY_2')
 
     # DONE
     def giveup_frustrated_1(self, conn):
@@ -168,9 +196,11 @@ class Chatbot:
     def inquiry_reply_2(self, message, conn):
         log.info('INQUIRY_REPLY_2 {}'.format(message))
         self._change_state(INQUIRY_REPLY_2)
-        # TODO: Generate INQUIRY_REPLY_2
-        self.send(conn, 'Generating INQUIRY_REPLY_2')
-        self.respond(conn)
+        # if self.role == ROLE_FIRST:
+        #     self.respond(conn, message)
+        if self.role == ROLE_SECOND:
+            # TODO: Generate INQUIRY_REPLY_2
+            self.send(conn, 'Generating INQUIRY_REPLY_2')
 
     # DONE
     def end(self, conn):
@@ -178,19 +208,12 @@ class Chatbot:
         # self.send(conn, 'I\'m glad we had the chance to meet, however I\'m a busy man, so I regret I must go. Goodbye, fellow Americans.')
         self.send(conn, 'Goodbye.')
 
-    # def no_reply(self, conn):
-    #     log.info('Sending no reply message')
-    #     if self.state == INITIAL_OUTREACH_1:
-    #         msg = self.initial_outreach_1('TIMEOUT')
-    #         self.timeout = threading.Timer(MAX_DELAY, self.no_reply, args=[conn])
-    #         self.timeout.start()
-    #     else:
-    #         msg = self.giveup_frustrated_1(None)
-    #     self.send(conn, msg, False)
-
-    def forget(self):
-        self.state = START
+    def forget(self, conn):
+        self._change_state(START)
         self.voicedResponses = {}
+        if self.timeout is not None:
+            self.timeout.cancel()
+        self.respond(conn)
 
     def _change_state(self, newState):
         log.info('{} -> {}'.format(self.states[self.state], self.states[newState]))
@@ -233,7 +256,7 @@ def recv(conn, frm, msg):
          sys.exit('dying')
       elif cmd == '*FORGET':
          # fsm.state = fsm.START
-         fsm.forget()
+         fsm.forget(conn)
          log.info('forgetting ...')
       else: # FSM
          log.info('Responding...')
